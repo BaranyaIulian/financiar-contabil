@@ -1,2 +1,10 @@
-# financiar-contabil
-un software de facturare și gestiune a documentelor comerciale, cu funcții de evidență a încasărilor și rapoarte, folosit de firme pentru administrarea vânzărilor și relația cu contabilitatea.
+# Unified Billing Core (Electron)
+## Run
+1. Install Node.js LTS
+2. In this folder:
+   - `npm install`
+   - `npm start`
+
+## Notes
+- Local-first storage uses IndexedDB in the renderer.
+- CPV list is bundled in `data/cpv_ro.json` and loaded via the preload bridge.

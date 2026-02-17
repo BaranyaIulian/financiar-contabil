@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Billing Core</title>
+  <link rel="stylesheet" href="./styles/tokens.css">
+  <link rel="stylesheet" href="./styles/core.css">
+  <link rel="stylesheet" href="./styles/components.css">
+</head>
+<body>
+  <!-- Icon sprite (monochrome, rounded) -->
+  <svg aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a2 2 0 0 1-2 2h-4v-7H10v7H6a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-invoice" viewBox="0 0 24 24"><path d="M7 3h10v18l-2-1-2 1-2-1-2 1-2-1-2 1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M22 21v-1a4 4 0 0 0-3-3.87" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M3 6.5 12 11l9-4.5M12 11v11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v7m6-7v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M7 10h10v2a5 5 0 0 1-5 5v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.2-2-3.4-2.3.7a7.3 7.3 0 0 0-1.7-1L15 6H9l-.5 2.1c-.6.3-1.2.6-1.7 1L4.5 8.4 2.5 11.8l2 1.2a8.7 8.7 0 0 0 0 2l-2 1.2 2 3.4 2.3-.7c.5.4 1.1.7 1.7 1L9 22h6l.5-2.1c.6-.3 1.2-.6 1.7-1l2.3.7 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M16.3 16.3 21 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <div id="app" class="app">
+    <header class="titlebar" id="titlebar">
+      <div class="titlebar__left">
+        <div class="macControls" aria-label="Window controls">
+          <button class="macBtn macBtn--close" id="btnClose" title="Close"></button>
+          <button class="macBtn macBtn--min" id="btnMin" title="Minimize"></button>
+          <button class="macBtn macBtn--max" id="btnMax" title="Maximize"></button>
+        </div>
+
+        <div class="brand">
+          <div class="brand__mark">U</div>
+          <div class="brand__text">
+            <div class="brand__name">Unified Billing</div>
+            <div class="brand__sub">CORE • local-first</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="titlebar__center">
+        <div class="globalSearch" id="globalSearchWrap">
+          <svg class="globalSearch__icon" viewBox="0 0 24 24"><use href="#i-search"></use></svg>
+          <input class="globalSearch__input" id="globalSearch" placeholder="Search (pages, customers, products, CPV)…" autocomplete="off" spellcheck="false" />
+          <div class="globalSearch__drop" id="globalSearchDrop" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="titlebar__right">
+        <div class="userPill" id="userPill" style="display:none">
+          <span class="userPill__dot"></span>
+          <span class="userPill__name" id="userName">user</span>
+          <button class="userPill__btn" id="btnAccount" title="Profile & Companies">Account</button>
+          <button class="userPill__btn" id="btnLogout" title="Logout">Logout</button>
+        </div>
+        <div class="titlebar__crumb" id="crumb">Dashboard</div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <nav class="nav" id="nav">
+          <button class="nav__item isActive" data-route="/dashboard" data-crumb="Dashboard">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-home"></use></svg></span>
+            <span class="nav__label">Dashboard</span>
+          </button>
+          <button class="nav__item" data-route="/invoice" data-crumb="Invoice">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-invoice"></use></svg></span>
+            <span class="nav__label">Invoice</span>
+          </button>
+          <button class="nav__item" data-route="/clients" data-crumb="Customers">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-users"></use></svg></span>
+            <span class="nav__label">Customers</span>
+          </button>
+          <button class="nav__item" data-route="/products" data-crumb="Products">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-box"></use></svg></span>
+            <span class="nav__label">Products</span>
+          </button>
+          <button class="nav__item" data-route="/efactura" data-crumb="e-Factura">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-plug"></use></svg></span>
+            <span class="nav__label">e-Factura</span>
+          </button>
+          <button class="nav__item" data-route="/settings" data-crumb="Settings">
+            <span class="nav__icon"><svg viewBox="0 0 24 24"><use href="#i-settings"></use></svg></span>
+            <span class="nav__label">Settings</span>
+          </button>
+        </nav>
+
+        <div class="sidebar__footer">
+          <button class="btn btn--ghost" id="btnDemo">Generate demo</button>
+          <button class="btn btn--ghost" id="btnReset">Reset</button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div id="viewRoot" class="viewRoot"></div>
+      </main>
+    </div>
+
+    <div class="toastHost" id="toastHost"></div>
+  </div>
+
+  <script type="module" src="./src/core/app.js"></script>
+</body>
+</html>

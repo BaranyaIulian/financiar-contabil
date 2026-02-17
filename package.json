@@ -1,0 +1,17 @@
+{
+  "name": "unified-billing-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified Billing Core (local-first, modular) - Electron + IndexedDB",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
