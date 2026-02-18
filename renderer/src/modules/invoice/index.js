@@ -1,4 +1,4 @@
-import { db } from '../../core/db.js';
+import { repos } from '../../repos/index.js';
 import { uid, escapeHtml, money } from '../../core/utils.js';
 
 // --- Page formats + templates (persisted in IndexedDB kv under `invoice_design`) ---
@@ -142,7 +142,7 @@ async function loadInvoiceDesignState(){
     custom: []
   };
   try{
-    const saved = await db.kvGet('invoice_design');
+    const saved = await repos.kv.get('invoice_design');
     if (!saved || typeof saved !== 'object') return fallback;
     const pref = saved.pref && typeof saved.pref === 'object' ? saved.pref : fallback.pref;
     const custom = Array.isArray(saved.custom) ? saved.custom : [];
@@ -161,7 +161,7 @@ async function saveInvoiceDesignState(pref, custom){
     templateId: String(pref?.templateId || BUILTIN_TEMPLATES[0].id)
   };
   const safeCustom = Array.isArray(custom) ? custom.slice(0, 50) : [];
-  await db.kvSet('invoice_design', { pref: safePref, custom: safeCustom });
+  await repos.kv.set('invoice_design', { pref: safePref, custom: safeCustom });
 }
 
 function calcTotals(items){
@@ -232,7 +232,7 @@ export default function register(api){
     mount: async (root) => {
       const cleanup = [];
       const settings = api.storage.getSettings();
-      const clients = await db.list('clients');
+      const clients = await repos.clients.list();
 
       // page format + template selection (persisted in IndexedDB kv)
       const designState = await loadInvoiceDesignState();
@@ -551,7 +551,7 @@ export default function register(api){
       }
 
       const syncClientSnapshot = async () => {
-        const currentClient = inv.clientId ? await db.get('clients', inv.clientId) : null;
+        const currentClient = inv.clientId ? await repos.clients.get(inv.clientId) : null;
         inv.clientSnapshot = currentClient || { name:'', cui:'', address:'' };
       };
 
@@ -829,13 +829,13 @@ export default function register(api){
 
       $('#saveInv').addEventListener('click', async ()=>{
         await syncClientSnapshot();
-        await db.put('invoices', { ...inv, updatedAt: Date.now() });
+        await repos.invoices.put({ ...inv, updatedAt: Date.now() });
         api.toast('Factură', 'Salvat', `${inv.series}-${inv.number}`);
       });
 
       $('#exportPdf').addEventListener('click', async ()=>{
         await syncClientSnapshot();
-        await db.put('invoices', { ...inv, updatedAt: Date.now() });
+        await repos.invoices.put({ ...inv, updatedAt: Date.now() });
         const html = buildPrintableHtml(inv);
         const filename = `${String(inv.series||'INV')}-${String(inv.number||'1')}.pdf`;
         try{

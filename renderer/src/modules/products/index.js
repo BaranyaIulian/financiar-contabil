@@ -1,4 +1,4 @@
-import { db } from '../../core/db.js';
+import { repos } from '../../repos/index.js';
 import { uid, escapeHtml } from '../../core/utils.js';
 import { promptModal } from '../../core/prompt.js';
 
@@ -8,7 +8,7 @@ export default function register(api){
     title:'Produse',
     mount: async (root) => {
       const render = async ()=>{
-        const items = await db.list('products');
+        const items = await repos.products.list();
         root.innerHTML = `
           <div class="card">
             <div class="row" style="justify-content:space-between; align-items:center">
@@ -43,22 +43,22 @@ export default function register(api){
           const um = await promptModal({ title:'Adaugă produs', label:'UM (ex: buc, ora)', value:'buc' }) || 'buc';
           const price = Number(await promptModal({ title:'Adaugă produs', label:'Preț (număr)', value:'0' }) || 0);
           const vat = Number(await promptModal({ title:'Adaugă produs', label:'TVA %', value:'19' }) || 19);
-          await db.put('products', { id: uid('p'), name, um, price, vat, createdAt: Date.now() });
+          await repos.products.put({ id: uid('p'), name, um, price, vat, createdAt: Date.now() });
           api.toast('Produs', 'Salvat', name);
           render();
         });
         root.querySelectorAll('[data-edit]').forEach(btn=>btn.addEventListener('click', async ()=>{
-          const p = await db.get('products', btn.dataset.edit); if (!p) return;
+          const p = await repos.products.get(btn.dataset.edit); if (!p) return;
           const name = (await promptModal({ title:'Editează produs', label:'Denumire', value: p.name || '' })) ?? p.name;
           const um = (await promptModal({ title:'Editează produs', label:'UM', value: p.um || 'buc' })) ?? p.um;
           const price = Number((await promptModal({ title:'Editează produs', label:'Preț', value: String(p.price ?? 0) })) ?? p.price ?? 0);
           const vat = Number((await promptModal({ title:'Editează produs', label:'TVA %', value: String(p.vat ?? 19) })) ?? p.vat ?? 19);
-          await db.put('products', { ...p, name, um, price, vat, updatedAt: Date.now() });
+          await repos.products.put({ ...p, name, um, price, vat, updatedAt: Date.now() });
           render();
         }));
         root.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click', async ()=>{
           if (!confirm('Ștergi produsul?')) return;
-          await db.del('products', btn.dataset.del);
+          await repos.products.del(btn.dataset.del);
           render();
         }));
       };

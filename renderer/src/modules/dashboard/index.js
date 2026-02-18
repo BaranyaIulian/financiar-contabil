@@ -38,8 +38,7 @@ export default function register(api){
     path:'/dashboard',
     title:'Dashboard',
     mount: async (root) => {
-      // Use the core IndexedDB wrapper directly (host api does not expose api.db)
-      const { db } = await import('../../core/db.js');
+      const { repos } = await import('../../repos/index.js');
       root.innerHTML = `
         <div class="dash">
           <div class="dash__top">
@@ -108,8 +107,8 @@ export default function register(api){
 
       const refresh = async ()=>{
         const [invoices, clients] = await Promise.all([
-          db.list('invoices'),
-          db.list('clients'),
+          repos.invoices.list(),
+          repos.clients.list(),
         ]);
 
         const invCount = invoices.length;

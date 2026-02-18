@@ -1,5 +1,5 @@
 import { escapeHtml, uid } from '../../core/utils.js';
-import { db } from '../../core/db.js';
+import { repos } from '../../repos/index.js';
 
 export default function register(api){
   api.routes.add({
@@ -14,8 +14,8 @@ export default function register(api){
       const loadCompanies = async ()=>{
         if (!user || isAdmin) return [];
         const [companies, memberships] = await Promise.all([
-          db.list('companies'),
-          db.list('memberships')
+          repos.companies.list(),
+          repos.memberships.list()
         ]);
         const my = new Set(memberships.filter(m=>m.userId===user.id).map(m=>m.companyId));
         return companies.filter(c=>my.has(c.id));
@@ -104,8 +104,8 @@ export default function register(api){
               address: root.querySelector('#newCoAddr').value.trim(),
               createdAt: Date.now()
             };
-            await db.put('companies', company);
-            await db.put('memberships', { id: uid('m'), userId: user.id, companyId: company.id, role:'owner', createdAt: Date.now() });
+            await repos.companies.put(company);
+            await repos.memberships.put({ id: uid('m'), userId: user.id, companyId: company.id, role:'owner', createdAt: Date.now() });
             companies = await loadCompanies();
             await api.auth.setActiveCompany(company.id);
             await api.storage.saveSettings({ company: {

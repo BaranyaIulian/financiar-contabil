@@ -2,7 +2,7 @@ import { store } from './store.js';
 import { initRouter } from './router.js';
 import { createHost } from './pluginHost.js';
 import { toast, escapeHtml, uid } from './utils.js';
-import { db } from './db.js';
+import { repos } from '../repos/index.js';
 import { promptModal } from './prompt.js';
 
 // Built-in modules
@@ -49,8 +49,8 @@ const getCache = async () => {
   if (!cache.ts || now - cache.ts > 15_000 || !cache.clients || !cache.products){
     try{
       const [clients, products] = await Promise.all([
-        db.list('clients'),
-        db.list('products')
+        repos.clients.list(),
+        repos.products.list()
       ]);
       cache = { clients, products, ts: now };
     }catch{
@@ -291,7 +291,7 @@ async function openAccountModal(){
 
   // companies management (non-admin)
   const loadMyCompanies = async ()=>{
-    const [companies, memberships] = await Promise.all([db.list('companies'), db.list('memberships')]);
+    const [companies, memberships] = await Promise.all([repos.companies.list(), repos.memberships.list()]);
     const my = new Set(memberships.filter(m=>m.userId===user.id).map(m=>m.companyId));
     return companies.filter(c=>my.has(c.id));
   };
@@ -348,7 +348,7 @@ async function openAccountModal(){
         if (cui===null) return;
         const address = await promptModal({ title:'Edit company', label:'Address', value: co.address||'' });
         if (address===null) return;
-        await db.put('companies', { ...co, name: String(name).trim(), cui: String(cui).trim(), address: String(address).trim(), updatedAt: Date.now() });
+        await repos.companies.put({ ...co, name: String(name).trim(), cui: String(cui).trim(), address: String(address).trim(), updatedAt: Date.now() });
         if (api.auth.get().activeCompanyId === co.id){
           await api.storage.saveSettings({ company: {
             ...api.storage.getSettings().company,
@@ -365,10 +365,10 @@ async function openAccountModal(){
       if (act==='del'){
         const ok = await promptModal({ title:'Delete company', label:`Type DELETE to confirm`, placeholder:'DELETE', value:'' , okText:'Delete', cancelText:'Cancel'});
         if (ok !== 'DELETE') return;
-        await db.delete('companies', co.id);
-        const memberships = await db.list('memberships');
+        await repos.companies.del(co.id);
+        const memberships = await repos.memberships.list();
         const toDel = memberships.filter(m=>m.companyId===co.id && m.userId===user.id);
-        for (const m of toDel) await db.delete('memberships', m.id);
+        for (const m of toDel) await repos.memberships.del(m.id);
         if (api.auth.get().activeCompanyId === co.id){
           await api.auth.setActiveCompany('');
         }
@@ -387,8 +387,8 @@ async function openAccountModal(){
       const address = await promptModal({ title:'New company', label:'Address', placeholder:'Address' });
       if (address===null) return;
       const company = { id: uid('co'), name: String(name).trim(), cui: String(cui).trim(), address: String(address).trim(), createdAt: Date.now() };
-      await db.put('companies', company);
-      await db.put('memberships', { id: uid('m'), userId: user.id, companyId: company.id, role:'owner', createdAt: Date.now() });
+      await repos.companies.put(company);
+      await repos.memberships.put({ id: uid('m'), userId: user.id, companyId: company.id, role:'owner', createdAt: Date.now() });
       await api.auth.setActiveCompany(company.id);
       await api.storage.saveSettings({ company: {
         ...api.storage.getSettings().company,

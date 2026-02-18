@@ -1,4 +1,4 @@
-import { db } from '../../core/db.js';
+import { repos } from '../../repos/index.js';
 import { escapeHtml, uid } from '../../core/utils.js';
 
 function badge(status){
@@ -15,21 +15,21 @@ export default function register(api){
     title:'e-Factura',
     mount: async (root) => {
       const settings = api.storage.getSettings();
-      const efSet = (await db.kvGet('efactura_settings')) || {
+      const efSet = (await repos.kv.get('efactura_settings')) || {
         cuiEmitent: settings.company?.cui || '',
         token: '',
         environment: 'demo',
         autoSync: false
       };
-      const invoices = await db.list('invoices');
+      const invoices = await repos.invoices.list();
       let selected = invoices[0]?.id || '';
-      const statuses = await db.list('efactura');
+      const statuses = await repos.efactura.list();
 
       const getStatus = (invoiceId) => statuses.find(s=>s.invoiceId===invoiceId) || null;
 
       const render = async ()=>{
-        const invList = await db.list('invoices');
-        const stList = await db.list('efactura');
+        const invList = await repos.invoices.list();
+        const stList = await repos.efactura.list();
         const inv = selected ? invList.find(x=>x.id===selected) : null;
         const st = inv ? stList.find(x=>x.invoiceId===inv.id) : null;
 
@@ -136,13 +136,13 @@ export default function register(api){
           efSet.cuiEmitent = root.querySelector('#cui').value.trim();
           efSet.environment = root.querySelector('#env').value;
           efSet.token = root.querySelector('#token').value.trim();
-          await db.kvSet('efactura_settings', efSet);
+          await repos.kv.set('efactura_settings', efSet);
           api.toast('e-Factura', 'Setări salvate', efSet.environment);
         });
 
         root.querySelector('#saveFields').addEventListener('click', async ()=>{
           if (!selected) return;
-          const inv = await db.get('invoices', selected);
+          const inv = await repos.invoices.get(selected);
           if (!inv) return;
           inv.efFields = {
             bt126: root.querySelector('#bt126').value.trim(),
@@ -154,14 +154,14 @@ export default function register(api){
             bt158: root.querySelector('#bt158').value.trim(),
             bt159: root.querySelector('#bt159').value.trim(),
           };
-          await db.put('invoices', { ...inv, updatedAt: Date.now() });
+          await repos.invoices.put({ ...inv, updatedAt: Date.now() });
           api.toast('e-Factura', 'Câmpuri salvate', `${inv.series}-${inv.number}`);
           render();
         });
 
         root.querySelector('#send').addEventListener('click', async ()=>{
           if (!selected) return;
-          const inv = await db.get('invoices', selected);
+          const inv = await repos.invoices.get(selected);
           if (!inv) return;
 
           // demo state machine
@@ -181,18 +181,18 @@ export default function register(api){
             ],
             updatedAt: now
           };
-          await db.put('efactura', record);
+          await repos.efactura.put(record);
 
           setTimeout(async ()=>{
-            const r = await db.get('efactura', record.id);
+            const r = await repos.efactura.get(record.id);
             if (!r) return;
             r.status = 'PROCESSING';
             r.events.push({ type:'PROCESSING', at: Date.now(), message:'Procesare ANAF (demo)...' });
-            await db.put('efactura', r);
+            await repos.efactura.put(r);
             render();
 
             setTimeout(async ()=>{
-              const r2 = await db.get('efactura', record.id);
+              const r2 = await repos.efactura.get(record.id);
               if (!r2) return;
               if (willReject){
                 r2.status = 'REJECTED';
@@ -202,7 +202,7 @@ export default function register(api){
                 r2.status = 'VALIDATED';
                 r2.events.push({ type:'VALIDATED', at: Date.now(), message:'Validat (demo).' });
               }
-              await db.put('efactura', r2);
+              await repos.efactura.put(r2);
               api.toast('e-Factura', 'Status actualizat', r2.status);
               render();
             }, 1200);

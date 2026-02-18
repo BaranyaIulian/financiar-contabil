@@ -1,4 +1,4 @@
-import { db } from './db.js';
+import { repos } from '../repos/index.js';
 import { sha256, uid } from './utils.js';
 
 const listeners = new Map();
@@ -31,7 +31,7 @@ export const store = {
   },
   setRoute: (route) => { state.route = route; store.emit('route', route); },
   async loadBoot(){
-    const settings = await db.kvGet('settings');
+    const settings = await repos.kv.get('settings');
     if (settings) state.settings = settings;
     store.emit('settings', state.settings);
 
@@ -40,10 +40,10 @@ export const store = {
 
   // -------- Auth / Session --------
   async ensureAdmin(){
-    const admin = await db.get('users','admin');
+    const admin = await repos.users.get('admin');
     if (admin) return;
     const passHash = await sha256('admin');
-    await db.put('users', {
+    await repos.users.put({
       id:'admin',
       username:'admin',
       passHash,
@@ -54,10 +54,10 @@ export const store = {
 
   async loadAuth(){
     await store.ensureAdmin();
-    const session = await db.kvGet('session');
+    const session = await repos.kv.get('session');
     const userId = session?.userId || null;
     if (userId){
-      const user = await db.get('users', userId);
+      const user = await repos.users.get(userId);
       state.auth.user = user || null;
       state.auth.activeCompanyId = session?.activeCompanyId || null;
       if (user?.role === 'admin' && !state.auth.activeCompanyId){
@@ -74,13 +74,13 @@ export const store = {
   async login(username, password){
     await store.ensureAdmin();
     const id = String(username||'').trim().toLowerCase();
-    const user = await db.get('users', id);
+    const user = await repos.users.get(id);
     if (!user) throw new Error('User not found');
     const passHash = await sha256(password||'');
     if (passHash !== user.passHash) throw new Error('Wrong password');
     state.auth.user = user;
     if (user.role === 'admin') state.auth.activeCompanyId = 'admin_default';
-    await db.kvSet('session', { userId: user.id, activeCompanyId: state.auth.activeCompanyId });
+    await repos.kv.set('session', { userId: user.id, activeCompanyId: state.auth.activeCompanyId });
     store.emit('auth', { ...state.auth });
     return user;
   },
@@ -88,7 +88,7 @@ export const store = {
   async logout(){
     state.auth.user = null;
     state.auth.activeCompanyId = null;
-    await db.kvSet('session', null);
+    await repos.kv.set('session', null);
     store.emit('auth', { ...state.auth });
   },
 
@@ -97,12 +97,12 @@ export const store = {
     const id = String(username||'').trim().toLowerCase();
     if (!id || id.length < 3) throw new Error('Username too short');
     if (id === 'admin') throw new Error('Reserved username');
-    const exists = await db.get('users', id);
+    const exists = await repos.users.get(id);
     if (exists) throw new Error('User already exists');
     const passHash = await sha256(password||'');
     if (!password || String(password).length < 4) throw new Error('Password too short');
     const user = { id, username: id, passHash, role:'user', createdAt: Date.now() };
-    await db.put('users', user);
+    await repos.users.put(user);
     return user;
   },
 
@@ -114,7 +114,7 @@ export const store = {
     if (curHash !== user.passHash) throw new Error('Wrong current password');
     const passHash = await sha256(newPassword);
     const next = { ...user, passHash, updatedAt: Date.now() };
-    await db.put('users', next);
+    await repos.users.put(next);
     state.auth.user = next;
     store.emit('auth', { ...state.auth });
     return true;
@@ -122,13 +122,13 @@ export const store = {
 
   async setActiveCompany(companyId){
     state.auth.activeCompanyId = companyId || null;
-    const sess = await db.kvGet('session');
-    if (sess?.userId) await db.kvSet('session', { ...sess, activeCompanyId: state.auth.activeCompanyId });
+    const sess = await repos.kv.get('session');
+    if (sess?.userId) await repos.kv.set('session', { ...sess, activeCompanyId: state.auth.activeCompanyId });
     store.emit('auth', { ...state.auth });
   },
   async saveSettings(patch){
     state.settings = { ...state.settings, ...patch };
-    await db.kvSet('settings', state.settings);
+    await repos.kv.set('settings', state.settings);
     store.emit('settings', state.settings);
   },
   setCPV(list){

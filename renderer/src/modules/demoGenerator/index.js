@@ -1,4 +1,4 @@
-import { db } from '../../core/db.js';
+import { repos } from '../../repos/index.js';
 import { uid } from '../../core/utils.js';
 
 export default function register(api){
@@ -16,12 +16,12 @@ export default function register(api){
       }
 
       const c1 = { id: uid('c'), name:'Client Demo SRL', cui:'RO87654321', address:'Cluj-Napoca, România', createdAt: Date.now() };
-      await db.put('clients', c1);
+      await repos.clients.put(c1);
 
       const p1 = { id: uid('p'), name:'Servicii producție video', um:'ora', price:450, vat:19, createdAt: Date.now() };
       const p2 = { id: uid('p'), name:'Servicii editare', um:'ora', price:35, vat:19, createdAt: Date.now() };
-      await db.put('products', p1);
-      await db.put('products', p2);
+      await repos.products.put(p1);
+      await repos.products.put(p2);
 
       const cpv = api.data.getCPV();
       const pick = (q) => cpv.find(x=>x.description.toLowerCase().includes(q)) || cpv[Math.floor(Math.random()*cpv.length)];
@@ -42,7 +42,7 @@ export default function register(api){
         notes: 'Factură demo generată automat.',
         createdAt: Date.now()
       };
-      await db.put('invoices', inv);
+      await repos.invoices.put(inv);
 
       api.toast('Demo', 'Generat', 'Client + produse + factură');
     }
@@ -52,7 +52,7 @@ export default function register(api){
     id:'demo.reset',
     title:'Reset',
     run: async ()=>{
-      await db.clearAll();
+      await repos._unsafe.clearAll();
       api.toast('Reset', 'OK', 'IndexedDB curățat');
       location.reload();
     }
